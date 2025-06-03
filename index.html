@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>ANTI_EQ</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      height: 100vh;
+      overflow: hidden;
+      /*cursor: none;*/
+      font-family: Arial, sans-serif;
+    }
+
+    .symbol {
+      position: absolute;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 150px;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+      user-select: none;
+    }
+
+    .symbol2 {
+      position: absolute;
+      color: rgba(255, 255, 255, 0.993);
+      font-size: 130px;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+      user-select: none;
+      opacity: 0.9;
+    }
+
+    .symbol.show {
+      opacity: 0.42;
+    }
+
+    .symbol.fade {
+      opacity: 0.0525;
+    }
+
+    #scroll-symbol {
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    #click-symbol {
+      top: 30%;
+      right: 20%;
+      transform: translate(-50%, -50%);
+    }
+
+    #hold-symbol {
+      bottom: 30%;
+      left: 20%;
+      transform: translate(-50%, -50%);
+    }
+
+    #text-symbol {
+      bottom: -100px;
+      left: 80%;
+      transform: translate(-50%, -50%);
+    }
+
+    .ambient {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 50%;
+      animation: float 15s infinite linear;
+    }
+
+    @keyframes float {
+      0% { transform: translate(0, 0) scale(1); opacity: 0; }
+      50% { opacity: 0.08; }
+      100% { transform: translate(150px, -150px) scale(0); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="scroll-symbol" class="symbol">↕ scroll</div>
+<div id="click-symbol" class="symbol">(..) doble click</div>
+<div id="hold-symbol" class="symbol">◉ click/hold</div>
+<div id="text-symbol" class="symbol2">tus acciones definen tu experiencia</div>
+
+<!--<div id="hold-symbol" class="symbol">◉ presionar</div>-->
+
+<script>
+  let currentModeUrl = null;
+
+  function setMode(url) {
+    currentModeUrl = url;
+  }
+
+  // Sistema de símbolos aleatorios
+  function showRandomSymbols() {
+    const symbols = ['scroll-symbol', 'click-symbol', 'hold-symbol'];
+    const randomSymbol = symbols[Math.floor(Math.random() * symbols.length)];
+    const symbol = document.getElementById(randomSymbol);
+    
+    // Posición aleatoria en la pantalla
+    const randomX = Math.random() * (window.innerWidth - 100);
+    const randomY = Math.random() * (window.innerHeight - 100);
+    symbol.style.left = randomX + 'px';
+    symbol.style.top = randomY + 'px';
+    symbol.style.transform = 'none';
+    
+    symbol.classList.add('show');
+    setTimeout(() => {
+      symbol.classList.remove('show');
+      // Restaurar posición original después del fade
+      setTimeout(() => restoreOriginalPosition(randomSymbol), 500);
+    }, 6000);
+  }
+
+  function restoreOriginalPosition(symbolId) {
+    const symbol = document.getElementById(symbolId);
+    symbol.style.left = '';
+    symbol.style.top = '';
+    
+    if (symbolId === 'scroll-symbol') {
+      symbol.style.transform = 'translate(-50%, -50%)';
+    } else if (symbolId === 'click-symbol') {
+      symbol.style.transform = 'translate(-50%, -50%)';
+    } else if (symbolId === 'hold-symbol') {
+      symbol.style.transform = 'translate(-50%, -50%)';
+    }
+  }
+
+  // Mostrar símbolos aleatorios cada 8 segundos (6s visible + 2s pausa)
+  setInterval(showRandomSymbols, 3000);
+
+  function showSymbolOnAction(id) {
+    const symbol = document.getElementById(id);
+    symbol.classList.remove('show'); // Limpiar estado previo
+    
+    // Asegurar que esté en su posición original para las acciones
+    restoreOriginalPosition(id);
+    
+    symbol.style.opacity = '0.525'; // 5% más claro que el aleatorio (0.42)
+    
+    setTimeout(() => {
+      symbol.style.opacity = '';
+    }, 2000);
+  }
+
+  // Partículas ambientales esporádicas
+  function createAmbientParticle() {
+    if (Math.random() < 0.15) return; // 85% chance de crear
+    
+    const particle = document.createElement('div');
+    particle.className = 'ambient';
+    particle.style.left = Math.random() * window.innerWidth + 'px';
+    particle.style.top = Math.random() * window.innerHeight + 'px';
+    particle.style.animationDelay = Math.random() * 5 + 's';
+    
+    document.body.appendChild(particle);
+    
+    setTimeout(() => {
+      particle.remove();
+    }, 15000);
+  }
+
+  // Crear partículas ocasionalmente
+  setInterval(createAmbientParticle, 1500);
+
+  // Acción 1: scroll vertical = SONIDO (sintesis)
+  window.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      setMode('sintesis.html');
+      showSymbolOnAction('scroll-symbol');
+    }
+  });
+
+  // Acción 2: doble click = IMAGEN (fotografia)
+  window.addEventListener('dblclick', () => {
+    setMode('fotografia.html');
+    showSymbolOnAction('click-symbol');
+  });
+
+  // Acción 3: clic largo = RASTROS
+  let holdTimer;
+  window.addEventListener('mousedown', () => {
+    holdTimer = setTimeout(() => {
+      setMode('rastros.html');
+      showSymbolOnAction('hold-symbol');
+    }, 800);
+  });
+  window.addEventListener('mouseup', () => clearTimeout(holdTimer));
+  window.addEventListener('mouseleave', () => clearTimeout(holdTimer));
+
+  // Clic que redirige
+  document.addEventListener('click', () => {
+    if (currentModeUrl) {
+      window.location.href = currentModeUrl;
+    }
+  });
+</script>
+
+</body>
+</html>

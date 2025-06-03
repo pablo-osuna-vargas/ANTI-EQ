@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>RASTROS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            height: 100vh;
+            overflow: hidden;
+            background: #000;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* Canvas espectral de fondo */
+        #spectral-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+        
+        /* Overlay de partículas */
+        .spectral-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+        
+        .phantom-particle {
+            position: absolute;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: phantomFloat 8s infinite ease-in-out;
+        }
+        
+        @keyframes phantomFloat {
+            0%, 100% { 
+                opacity: 0;
+                transform: translateY(100vh) scale(0.3);
+            }
+            50% { 
+                opacity: 0.7;
+                transform: translateY(-20vh) scale(1);
+            }
+        }
+        
+        /* Navegación */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        nav a {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 10rem;
+            padding: 1rem;
+            pointer-events: auto;
+            transition: all 0.6s ease;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: linkPulse 9s infinite ease-in-out;
+        }
+        
+        @keyframes linkPulse {
+            0%, 20% { 
+                opacity: 0.7;
+                box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+            }
+            25%, 40% { 
+                opacity: 0;
+                box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+            }
+            45%, 80% { 
+                opacity: 0.8;
+                box-shadow: 0 0 40px rgba(255, 255, 255, 0.5);
+            }
+            85%, 100% { 
+                opacity: 0;
+                box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
+            }
+        }
+        
+        nav a:hover {
+            opacity: 1;
+            transform: scale(1.2);
+            box-shadow: 0 0 60px rgba(255, 255, 255, 0.8);
+        }
+        
+        /* Posiciones de los enlaces */
+        .esquina-izquierda { bottom: 14rem; left: 12rem; }
+        .esquina-derecha { bottom: 8rem; right: 15rem; }
+        .esquina-izquierda-arriba { top: 8rem; left: 28rem; }
+        .esquina-derecha-arriba { top: 15rem; right: 31rem; }
+        
+        /* Efectos de evanescencia */
+        .fade-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0.8) 100%);
+            z-index: 3;
+            pointer-events: none;
+            animation: fadeBreath 6s infinite ease-in-out;
+        }
+        
+        @keyframes fadeBreath {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Canvas principal para efectos espectrales -->
+    <canvas id="spectral-canvas"></canvas>
+    
+    <!-- Overlay de partículas fantasmales -->
+    <div class="spectral-overlay" id="particles"></div>
+    
+    <!-- Overlay de evanescencia -->
+    <div class="fade-overlay"></div>
+    
+    <!-- Navegación -->
+    <nav>
+        <a href="sintesis.html" class="esquina-izquierda-arriba">↕</a>
+        <a href="fin.html" class="esquina-izquierda">(.)</a>
+        <a href="cine_experimental.html" class="esquina-derecha-arriba">⦿</a>
+        
+        <!--
+        <a href="hauntologia.html" class="esquina-derecha-arriba">⦿</a>
+    -->
+    </nav>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('spectral-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Efectos espectrales en canvas
+        const specters = [];
+        
+        class Specter {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 150 + 80;
+                this.opacity = 0;
+                this.speed = Math.random() * 1.2 + 0.3;
+                this.angle = Math.random() * Math.PI * 2;
+                this.life = 0;
+                this.maxLife = Math.random() * 400 + 150;
+                this.intensity = Math.random() * 0.4 + 0.2;
+                this.pulseSpeed = Math.random() * 0.05 + 0.02;
+            }
+            
+            update() {
+                this.life++;
+                this.x += Math.sin(this.angle) * this.speed;
+                this.y += Math.cos(this.angle) * this.speed;
+                this.angle += 0.02;
+                
+                // Pulsación más intensa
+                const pulse = Math.sin(this.life * this.pulseSpeed) * 0.3 + 0.7;
+                
+                // Fade in/out más dramático
+                if (this.life < this.maxLife * 0.2) {
+                    this.opacity = (this.life / (this.maxLife * 0.2)) * this.intensity * pulse;
+                } else if (this.life > this.maxLife * 0.8) {
+                    this.opacity = ((this.maxLife - this.life) / (this.maxLife * 0.2)) * this.intensity * pulse;
+                } else {
+                    this.opacity = this.intensity * pulse;
+                }
+                
+                // Reset if dead or out of bounds
+                if (this.life >= this.maxLife || this.x < -this.size || this.x > canvas.width + this.size || 
+                    this.y < -this.size || this.y > canvas.height + this.size) {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.life = 0;
+                    this.maxLife = Math.random() * 400 + 150;
+                    this.intensity = Math.random() * 0.4 + 0.2;
+                }
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.opacity;
+                
+                const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
+                gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+                gradient.addColorStop(0.3, 'rgba(200, 200, 255, 0.6)');
+                gradient.addColorStop(0.7, 'rgba(150, 150, 255, 0.3)');
+                gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+        
+        // Crear espectros
+        for (let i = 0; i < 12; i++) {
+            specters.push(new Specter());
+        }
+        
+        // Crear partículas fantasmales en el DOM
+        function createPhantomParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'phantom-particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.width = (Math.random() * 30 + 10) + 'px';
+            particle.style.height = particle.style.width;
+            particle.style.animationDelay = Math.random() * 8 + 's';
+            particle.style.animationDuration = (Math.random() * 6 + 6) + 's';
+            
+            document.getElementById('particles').appendChild(particle);
+            
+            setTimeout(() => {
+                particle.remove();
+            }, 15000);
+        }
+        
+        // Generar partículas periódicamente
+        setInterval(createPhantomParticle, 2000);
+        
+        // Loop de animación principal
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            specters.forEach(specter => {
+                specter.update();
+                specter.draw();
+            });
+            
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+    </script>
+</body>
+</html>

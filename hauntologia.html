@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>HAUNTOLOGÍA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            height: 100vh;
+            overflow: hidden;
+            background: #0a0a0a;
+            font-family: 'Courier New', monospace;
+        }
+        
+        /* Canvas hauntológico de fondo */
+        #haunt-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            filter: sepia(20%) contrast(1.2);
+        }
+        
+        /* Espectros de imágenes históricas */
+        .image-specter {
+            position: fixed;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 2;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+            filter: grayscale(70%) contrast(1.3) brightness(0.8);
+            animation: spectralFade 8s infinite ease-in-out;
+        }
+        
+        @keyframes spectralFade {
+            0%, 90%, 100% { 
+                opacity: 0;
+                transform: scale(0.8) rotate(-2deg);
+                filter: grayscale(100%) blur(3px) brightness(0.6);
+            }
+            10%, 80% { 
+                opacity: 0.4;
+                transform: scale(1) rotate(0deg);
+                filter: grayscale(70%) blur(1px) brightness(0.8);
+            }
+            40%, 60% { 
+                opacity: 0.7;
+                transform: scale(1.05) rotate(1deg);
+                filter: grayscale(50%) blur(0px) brightness(1);
+            }
+        }
+        
+        /* Overlay de interferencia */
+        .interference-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(255,255,255,0.03) 2px,
+                    rgba(255,255,255,0.03) 4px
+                );
+            z-index: 3;
+            pointer-events: none;
+            animation: tvStatic 0.1s infinite linear;
+        }
+        
+        @keyframes tvStatic {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(4px); }
+        }
+        
+        /* Navegación fantasmal */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        nav a {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            font-size: 8rem;
+            padding: 1rem;
+            pointer-events: auto;
+            transition: all 0.3s ease;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: hauntPulse 6s infinite ease-in-out;
+        }
+        
+        @keyframes hauntPulse {
+            0%, 30% { 
+                opacity: 0.6;
+                box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+            }
+            35%, 45% { 
+                opacity: 0;
+                box-shadow: 0 0 40px rgba(255, 255, 255, 0.1);
+            }
+            50%, 85% { 
+                opacity: 0.8;
+                box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
+            }
+            90%, 100% { 
+                opacity: 0;
+                box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+            }
+        }
+        
+        nav a:hover {
+            opacity: 1 !important;
+            transform: scale(1.2);
+            box-shadow: 0 0 60px rgba(255, 255, 255, 0.8);
+            animation-play-state: paused;
+        }
+        
+        /* Posiciones de los enlaces */
+        .esquina-izquierda { bottom: 8rem; left: 12rem; }
+        .esquina-derecha { bottom: 7rem; right: 19rem; }
+        .esquina-izquierda-arriba { top: 12rem; left: 6rem; }
+        .esquina-derecha-arriba { top: 15rem; right: 5rem; }
+        
+        /* Overlay de memoria */
+        .memory-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 30% 70%, rgba(139, 69, 19, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(75, 0, 130, 0.1) 0%, transparent 50%);
+            z-index: 4;
+            pointer-events: none;
+            animation: memoryShift 12s infinite ease-in-out;
+        }
+        
+        @keyframes memoryShift {
+            0%, 100% { opacity: 0.2; }
+            33% { opacity: 0.4; }
+            66% { opacity: 0.6; }
+        }
+
+        /* Control de audio */
+        .audio-control {
+            position: fixed;
+            bottom: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 15;
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            width: 170px;
+            height: 170px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 16rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s ease;
+            backdrop-filter: blur(15px);
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            animation: hauntPulse 6s infinite ease-in-out;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .audio-control:hover {
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 60px rgba(255, 255, 255, 0.6);
+            transform: translate(-50%, -50%) scale(1.1);
+            animation-play-state: paused;
+            opacity: 1 !important;
+        }
+
+        .audio-control.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translate(-50%, -50%) scale(0.8);
+        }
+
+        /* Reproductor de música oculto */
+        #hidden-player {
+            position: fixed;
+            top: -200px;
+            left: -200px;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Indicador de música (opcional, muy sutil) */
+        .music-indicator {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            width: 8px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            z-index: 12;
+            opacity: 0;
+            animation: musicPulse 2s infinite ease-in-out;
+        }
+
+        .music-indicator.active {
+            opacity: 0.3;
+        }
+
+        @keyframes musicPulse {
+            0%, 50%, 100% { transform: scale(1); }
+            25%, 75% { transform: scale(1.2); }
+        }
+    </style>
+</head>
+<body>
+    <p>↕</p>
+    <!-- Canvas hauntológico -->
+    <canvas id="haunt-canvas"></canvas>
+    
+    <!-- Contenedor de espectros de imágenes -->
+    <div id="image-specters"></div>
+    
+    <!-- Overlay de interferencia de TV -->
+    <div class="interference-overlay"></div>
+    
+    <!-- Overlay de memoria -->
+    <div class="memory-overlay"></div>
+
+    <!-- Control de audio -->
+    <button id="audio-control" class="audio-control"><p>↕</p></button>
+
+    
+
+    <!-- Reproductor de música oculto -->
+    <div id="hidden-player">
+        <audio id="music-player" preload="auto" loop>
+            <!-- Aquí puedes agregar tus archivos de audio -->
+            <source src="audio/Basinski_Melancholia II.mp3" type="audio/mp3">
+            <source src="audio/Children of alice_The Liminal Space.mp3" type="audio/mp3">
+            <source src="audio/Derbyshire_Pot Au Feu.mp3" type="audio/mp3">
+            <source src="audio/Listening center_Titoli.mp3" type="audio/mp3">
+            <source src="audio/Oram_Four Aspects.mp3" type="audio/mp3">
+            <source src="audio/Pye corner audio_Approach.mp3" type="audio/mp3">
+            <source src="audio/Roj_Trip to the Shops.mp3" type="audio/mp3">
+            <source src="audio/Stare_Curzon.mp3" type="audio/mp3">
+            <source src="audio/The focus group_Kinky korner klub.mp3" type="audio/mp3">
+        </audio>
+    </div>
+
+    <!-- Indicador sutil de música -->
+    <div class="music-indicator" id="music-indicator"></div>
+    
+    <!-- Navegación -->
+    <nav>
+        <!--
+        <a href="../P N L (prototipo)/index.html" class="esquina-izquierda">↕</a>
+        -->
+
+        <a href="fin.html" class="esquina-derecha">◉</a>
+        <a href="fotografia.html" class="esquina-izquierda-arriba">◉</a>
+        <a href="rastros.html" class="esquina-derecha-arriba">⦿</a>
+        <a href="musica_experimental.html" class="esquina-izquierda">⦿</a>
+        <!--
+        <a href="../P N L (prototipo)/musica_experimental.html" class="esquina-izquierda-arriba">⦿</a>
+    -->
+       
+    </nav>
+
+    <script>
+        // Audio Context para síntesis sonora
+        let audioContext;
+        let isAudioActive = false;
+        let hauntingSounds = [];
+        let staticNoise;
+        let ambientOscillator;
+
+        // Sistema de playlist
+        const playlist = [
+            'audio/Basinski_Melancholia II.mp3.mp3',
+            'audio/Children of alice_The Liminal Space.mp3',
+            'audio/Derbyshire_Pot Au Feu.mp3',
+            'audio/Listening center_Titoli.mp3',
+            'audio/Oram_Four Aspects.mp3',
+            'audio/Pye corner audio_Approach.mp3',
+            'audio/Roj_Trip to the Shops.mp3',
+            'audio/Stare_Curzon.mp3',
+            'audio/The focus group_Kinky korner klub.mp3',
+            // Agrega aquí más archivos de tu playlist
+        ];
+
+        let currentTrack = 0;
+        let musicPlayer = document.getElementById('music-player');
+        let musicIndicator = document.getElementById('music-indicator');
+        let musicStarted = false;
+
+        // Función para cargar y reproducir la playlist
+        function initPlaylist() {
+            if (playlist.length === 0) return;
+            
+            loadTrack(currentTrack);
+            
+            // Event listener para cuando termine una canción
+            musicPlayer.addEventListener('ended', nextTrack);
+            
+            // Event listener para cuando esté listo para reproducir
+            musicPlayer.addEventListener('canplaythrough', () => {
+                if (!musicStarted) {
+                    playMusic();
+                }
+            });
+
+            // Event listener para errores de carga
+            musicPlayer.addEventListener('error', (e) => {
+                console.log('Error cargando pista:', playlist[currentTrack]);
+                nextTrack(); // Saltar a la siguiente pista si hay error
+            });
+        }
+
+        function loadTrack(index) {
+            if (index >= playlist.length) {
+                currentTrack = 0; // Volver al inicio de la playlist
+                index = 0;
+            }
+            
+            musicPlayer.src = playlist[index];
+            musicPlayer.load();
+        }
+
+        function playMusic() {
+            musicPlayer.play().then(() => {
+                musicStarted = true;
+                musicIndicator.classList.add('active');
+                console.log('Reproduciendo:', playlist[currentTrack]);
+            }).catch(error => {
+                console.log('Error al reproducir:', error);
+                // Intenta con la siguiente pista
+                nextTrack();
+            });
+        }
+
+        function nextTrack() {
+            currentTrack = (currentTrack + 1) % playlist.length;
+            loadTrack(currentTrack);
+            // La música se reproducirá automáticamente cuando esté lista
+        }
+
+        function pauseMusic() {
+            musicPlayer.pause();
+            musicIndicator.classList.remove('active');
+        }
+
+        function resumeMusic() {
+            playMusic();
+        }
+
+        // Función para cambiar a track aleatorio
+        function randomTrackChange() {
+            if (playlist.length <= 1) return;
+            
+            let newTrack;
+            do {
+                newTrack = Math.floor(Math.random() * playlist.length);
+            } while (newTrack === currentTrack);
+            
+            currentTrack = newTrack;
+            loadTrack(currentTrack);
+            
+            if (musicStarted) {
+                playMusic();
+            }
+            console.log('Track cambiado a:', playlist[currentTrack]);
+        }
+
+        // Inicializar audio sintetizado
+        function initAudio() {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Crear ruido estático de fondo
+            createStaticNoise();
+            
+            // Crear tono ambiental
+            createAmbientTone();
+            
+            // Crear sonidos espectrales aleatorios
+            startSpectralSounds();
+            
+            // Inicializar playlist de música
+            initPlaylist();
+            
+            isAudioActive = true;
+            document.getElementById('audio-control').classList.add('hidden');
+        }
+
+        // Crear ruido estático tipo radio vieja
+        function createStaticNoise() {
+            const bufferSize = audioContext.sampleRate * 2;
+            const noiseBuffer = audioContext.createBuffer(2, bufferSize, audioContext.sampleRate);
+            
+            for (let channel = 0; channel < 2; channel++) {
+                const output = noiseBuffer.getChannelData(channel);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+            }
+            
+            staticNoise = audioContext.createBufferSource();
+            staticNoise.buffer = noiseBuffer;
+            staticNoise.loop = true;
+            
+            const staticGain = audioContext.createGain();
+            staticGain.gain.value = 0.01; // Reducido para no competir con la música
+            
+            const staticFilter = audioContext.createBiquadFilter();
+            staticFilter.type = 'highpass';
+            staticFilter.frequency.value = 2000;
+            
+            staticNoise.connect(staticFilter);
+            staticFilter.connect(staticGain);
+            staticGain.connect(audioContext.destination);
+            
+            staticNoise.start();
+        }
+
+        // Crear tono ambiental profundo
+        function createAmbientTone() {
+            ambientOscillator = audioContext.createOscillator();
+            ambientOscillator.type = 'sine';
+            ambientOscillator.frequency.value = 40;
+            
+            const ambientGain = audioContext.createGain();
+            ambientGain.gain.value = 0.02; // Reducido para no competir con la música
+            
+            // LFO para modulación
+            const lfo = audioContext.createOscillator();
+            lfo.type = 'sine';
+            lfo.frequency.value = 0.1;
+            
+            const lfoGain = audioContext.createGain();
+            lfoGain.gain.value = 10;
+            
+            lfo.connect(lfoGain);
+            lfoGain.connect(ambientOscillator.frequency);
+            
+            ambientOscillator.connect(ambientGain);
+            ambientGain.connect(audioContext.destination);
+            
+            ambientOscillator.start();
+            lfo.start();
+        }
+
+        // Crear sonidos espectrales aleatorios
+        function startSpectralSounds() {
+            setInterval(() => {
+                if (!isAudioActive) return;
+                createSpectralSound();
+            }, Math.random() * 12000 + 8000); // Menos frecuentes para no competir con la música
+        }
+
+        function createSpectralSound() {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            
+            // Frecuencias espectrales
+            const frequencies = [110, 220, 330, 440, 660, 880];
+            osc.frequency.value = frequencies[Math.floor(Math.random() * frequencies.length)];
+            osc.type = Math.random() > 0.5 ? 'sine' : 'triangle';
+            
+            // Envelope más sutil
+            gain.gain.setValueAtTime(0, audioContext.currentTime);
+            gain.gain.linearRampToValueAtTime(0.05, audioContext.currentTime + 0.5);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 3);
+            
+            // Filtro
+            const filter = audioContext.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = Math.random() * 1000 + 200;
+            filter.Q.value = 5;
+            
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioContext.destination);
+            
+            osc.start();
+            osc.stop(audioContext.currentTime + 3);
+        }
+
+        // Control de audio principal
+        document.getElementById('audio-control').addEventListener('click', () => {
+            initAudio();
+        });
+
+        // Detección de scroll modificada
+        let scrollTimeout;
+        let lastScrollY = window.scrollY;
+
+        window.addEventListener('scroll', () => {
+            const currentScrollY = window.scrollY;
+            
+            if (!isAudioActive) {
+                initAudio();
+            } else if (musicStarted && musicPlayer.paused) {
+                resumeMusic();
+            }
+            
+            // Cambiar track si hay scroll y el audio ya está activo
+            if (isAudioActive && musicStarted && Math.abs(currentScrollY - lastScrollY) > 0) {
+                randomTrackChange();
+            }
+            
+            lastScrollY = currentScrollY;
+            
+            clearTimeout(scrollTimeout);
+            scrollTimeout = setTimeout(() => {
+                // Opcional: pausar música si no hay scroll por un tiempo
+                // if (musicStarted && !musicPlayer.paused) {
+                //     pauseMusic();
+                // }
+            }, 30000); // 30 segundos de inactividad
+        });
+
+        // Detección de interacción del usuario (click, toque, etc.)
+        ['click', 'touchstart', 'keydown'].forEach(event => {
+            document.addEventListener(event, () => {
+                if (!isAudioActive) {
+                    initAudio();
+                }
+            }, { once: true });
+        });
+
+        // Canvas setup
+        const canvas = document.getElementById('haunt-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Espectros hauntológicos
+        const haunts = [];
+        
+        class Haunt {
+            constructor() {
+                this.reset();
+                this.type = Math.random() < 0.5 ? 'wave' : 'static';
+                this.frequency = Math.random() * 0.02 + 0.01;
+            }
+            
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 200 + 100;
+                this.opacity = 0;
+                this.speed = Math.random() * 0.8 + 0.2;
+                this.angle = Math.random() * Math.PI * 2;
+                this.life = 0;
+                this.maxLife = Math.random() * 600 + 300;
+                this.intensity = Math.random() * 0.3 + 0.1;
+                this.phase = Math.random() * Math.PI * 2;
+            }
+            
+            update() {
+                this.life++;
+                
+                if (this.type === 'wave') {
+                    this.x += Math.sin(this.angle + this.life * 0.01) * this.speed;
+                    this.y += Math.cos(this.angle + this.life * 0.005) * this.speed * 0.5;
+                } else {
+                    this.x += Math.sin(this.angle) * this.speed * 0.3;
+                    this.y += Math.cos(this.angle) * this.speed * 0.3;
+                }
+                
+                // Interferencia temporal
+                const interference = Math.sin(this.life * this.frequency + this.phase) * 0.3 + 0.7;
+                const glitch = Math.random() < 0.05 ? Math.random() * 0.5 : 1;
+                
+                // Fade temporal
+                if (this.life < this.maxLife * 0.15) {
+                    this.opacity = (this.life / (this.maxLife * 0.15)) * this.intensity * interference * glitch;
+                } else if (this.life > this.maxLife * 0.85) {
+                    this.opacity = ((this.maxLife - this.life) / (this.maxLife * 0.15)) * this.intensity * interference * glitch;
+                } else {
+                    this.opacity = this.intensity * interference * glitch;
+                }
+                
+                if (this.life >= this.maxLife || this.x < -this.size || this.x > canvas.width + this.size || 
+                    this.y < -this.size || this.y > canvas.height + this.size) {
+                    this.reset();
+                }
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.opacity;
+                ctx.globalCompositeOperation = 'screen';
+                
+                if (this.type === 'wave') {
+                    const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
+                    gradient.addColorStop(0, 'rgba(255, 220, 180, 0.8)');
+                    gradient.addColorStop(0.4, 'rgba(255, 200, 150, 0.4)');
+                    gradient.addColorStop(0.8, 'rgba(200, 180, 255, 0.2)');
+                    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                    ctx.fillStyle = gradient;
+                } else {
+                    const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.size);
+                    gradient.addColorStop(0, 'rgba(200, 200, 255, 0.6)');
+                    gradient.addColorStop(0.3, 'rgba(150, 150, 200, 0.3)');
+                    gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                    ctx.fillStyle = gradient;
+                }
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+        
+        // Crear espectros hauntológicos
+        for (let i = 0; i < 15; i++) {
+            haunts.push(new Haunt());
+        }
+        
+        // Referencias culturales del siglo XX (simuladas como placeholders)
+        const culturalRefs = [
+            { era: '1920s', type: 'art', desc: 'Dadaísta' },
+            { era: '1930s', type: 'cinema', desc: 'Expresionista' },
+            { era: '1940s', type: 'propaganda', desc: 'Modernista' },
+            { era: '1950s', type: 'music', desc: 'Jazz/Blues' },
+            { era: '1960s', type: 'pop', desc: 'Psicodélico' },
+            { era: '1970s', type: 'punk', desc: 'Contracultura' },
+            { era: '1980s', type: 'synth', desc: 'New Wave' },
+            { era: '1990s', type: 'grunge', desc: 'Alternativo' }
+        ];
+        
+        // Crear espectros de imágenes culturales
+        function createImageSpecter() {
+            const specter = document.createElement('div');
+            specter.className = 'image-specter';
+            
+            const ref = culturalRefs[Math.floor(Math.random() * culturalRefs.length)];
+            const size = Math.random() * 200 + 100;
+            
+            specter.style.width = size + 'px';
+            specter.style.height = size * 0.7 + 'px';
+            specter.style.left = Math.random() * (window.innerWidth - size) + 'px';
+            specter.style.top = Math.random() * (window.innerHeight - size * 0.7) + 'px';
+            specter.style.background = `linear-gradient(45deg, 
+                rgba(${Math.random() * 100 + 100}, ${Math.random() * 100 + 100}, ${Math.random() * 100 + 150}, 0.3),
+                rgba(${Math.random() * 150 + 50}, ${Math.random() * 150 + 50}, ${Math.random() * 150 + 100}, 0.1))`;
+            specter.style.animationDelay = Math.random() * 8 + 's';
+            specter.style.animationDuration = (Math.random() * 4 + 6) + 's';
+            
+            // Placeholder visual para referencia cultural
+            specter.innerHTML = `<div style="
+                width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.2);
+                border-radius: 5px;
+            "></div>`;
+            
+            document.getElementById('image-specters').appendChild(specter);
+            
+            setTimeout(() => {
+                specter.remove();
+            }, 12000);
+        }
+        
+        // Generar contenido cultural periódicamente
+        setInterval(createImageSpecter, 4000);
+        
+        // Loop de animación principal
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            haunts.forEach(haunt => {
+                haunt.update();
+                haunt.draw();
+            });
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // Inicializar
+        createImageSpecter();
+        animate();
+
+        let scrollCooldown = false;
+
+window.addEventListener('wheel', () => {
+    if (!scrollCooldown) {
+        randomTrackChange();
+        scrollCooldown = true;
+        setTimeout(() => {
+            scrollCooldown = false;
+        }, 1000); // 1 segundo de espera entre scrolls
+    }
+});
+
+    </script>
+</body>
+</html>

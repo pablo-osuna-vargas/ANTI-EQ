@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LA LUZ DE LO OCULTO</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: black;
+      color: rgba(255, 255, 255, 0.0,5);
+      font-family: sans-serif;
+    }
+
+    main.main-content {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+
+    #imagenInput {
+      display: none;
+    }
+
+    label[for="imagenInput"] {
+      background-color: #ff00ff;
+      padding: 10px 20px;
+      border-radius: 36px;
+      color: #fff;
+      font-size: 26px;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    canvas {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <main class="main-content">
+    <label id="botonImago" for="imagenInput">Carga una imagen</label>
+    <input type="file" id="imagenInput" accept="image/*">
+  </main>
+
+  <div>
+    <a href="cine_experimental.html" class="esquina-izquierda-arriba">⦿</a>
+    <a href="hauntologia.html" class="esquina-derecha-arriba">⦿</a>
+  </div>
+  
+  <script>
+    let img;
+    let imgCargada = false;
+    let escaneando = false;
+    let columnaActual;
+    let reiniciar = false;
+    const anchoHaz = 10;
+    const desvanecimiento = 15;
+
+    let osc, noise, filtroLow, filtroHigh, reverb;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      background(0);
+      columnaActual = width;
+
+      osc = new p5.Oscillator('sine');
+      osc.amp(0);
+      osc.start();
+
+      noise = new p5.Noise('pink');
+      noise.amp(0);
+      noise.start();
+
+      filtroLow = new p5.LowPass();
+      filtroHigh = new p5.HighPass();
+
+      osc.disconnect();
+      noise.disconnect();
+
+      osc.connect(filtroLow);
+      filtroLow.connect(filtroHigh);
+      filtroHigh.connect();
+
+      reverb = new p5.Reverb();
+      reverb.process(filtroHigh, 3, 2);
+      reverb.process(noise, 3, 2);
+
+      document.getElementById('imagenInput').addEventListener('change', function(e) {
+        const archivo = e.target.files[0];
+        if (archivo) {
+          const url = URL.createObjectURL(archivo);
+          loadImage(url, (cargada) => {
+            cargada.resize(width, height);
+            img = cargada;
+            imgCargada = true;
+            columnaActual = width;
+            background(0);
+            escaneando = true;
+            document.getElementById('botonImago').style.display = 'none';
+            userStartAudio();
+            osc.amp(0.1, 0.1);
+            noise.amp(0.1, 0.1);
+          });
+        }
+      });
+    }
+
+    function draw() {
+      fill(0, desvanecimiento);
+      rect(0, 0, width, height);
+
+      if (imgCargada && escaneando && columnaActual >= 0) {
+        let inicio = max(0, columnaActual - anchoHaz);
+        let ancho = min(anchoHaz, columnaActual);
+        copy(img, inicio, 0, ancho, height, inicio, 0, ancho, height);
+
+        const imgCol = img.get(inicio + floor(ancho / 2), height / 2);
+        const c = color(imgCol);
+        const hsv = rgbToHsv(red(c), green(c), blue(c));
+
+        const hue = hsv[0];
+        const saturation = hsv[1];
+        const value = hsv[2];
+
+        const tono = map(hue, 0, 1, 100, 1000);
+        const amp = map(value, 0, 1, 0.01, 0.2);
+
+        const freqLow = map(saturation, 0, 1, 200, 5000);
+        const freqHigh = map(saturation, 0, 1, 5000, 200);
+        const reverbWet = map(saturation, 0, 1, 0.1, 0.8);
+
+        filtroLow.freq(freqLow);
+        filtroHigh.freq(freqHigh);
+        reverb.drywet(reverbWet);
+
+        osc.freq(tono);
+        osc.amp(amp, 0.1);
+        noise.amp(0.2 - amp, 0.1);
+
+        columnaActual--;
+
+        if (columnaActual < 0) {
+          if (reiniciar) {
+            columnaActual = width;
+            reiniciar = false;
+          } else {
+            escaneando = false;
+            osc.amp(0, 0.5);
+            noise.amp(0, 0.5);
+
+            setTimeout(() => {
+              background(0);
+              document.getElementById('botonImago').style.display = 'inline-block';
+              imgCargada = false;
+            }, 1000);
+          }
+        }
+      }
+    }
+
+    function mousePressed() {
+      if (imgCargada) {
+        userStartAudio();
+        if (!escaneando && columnaActual === 0) reiniciar = true;
+        escaneando = !escaneando;
+        osc.amp(escaneando ? 0.1 : 0, 0.1);
+        noise.amp(escaneando ? 0.1 : 0, 0.1);
+      }
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+      background(0);
+      if (img && imgCargada) {
+        img.resize(width, height);
+        columnaActual = width;
+      }
+    }
+
+    function rgbToHsv(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      let max = Math.max(r, g, b), min = Math.min(r, g, b);
+      let h, s, v = max;
+      let d = max - min;
+      s = max === 0 ? 0 : d / max;
+      if (max === min) {
+        h = 0;
+      } else {
+        switch (max) {
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+        }
+        h /= 6;
+      }
+      return [h, s, v];
+    }
+  </script>
+</body>
+</html>

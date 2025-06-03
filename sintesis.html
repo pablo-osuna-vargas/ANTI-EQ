@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>CREADOR DE ESPECTROS</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      background-color: black;
+      color: whitesmoke;
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+      cursor: crosshair;
+    }
+    canvas {
+      display: block;
+    }
+    
+    .link {
+      position: fixed;
+      color: rgba(255, 255, 255, 0);
+      text-decoration: none;
+      font-size: 140px;
+      font-weight: bold;
+      z-index: 1000;
+      transition: opacity 2s ease-in-out;
+      pointer-events: none;
+    }
+    
+    .link.visible {
+      color: rgba(255, 255, 255, 0.8);
+      pointer-events: auto;
+    }
+    
+    .link:hover {
+      color: rgba(255, 255, 255, 1);
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    }
+    
+    .esquina-izquierda {
+      top: 50%;
+      left: 20px;
+      transform: translateY(-50%);
+    }
+    
+    .esquina-derecha {
+      top: 50%;
+      right: 20px;
+      transform: translateY(-50%);
+    }
+    
+    .esquina-izquierda-arriba {
+      top: 20px;
+      left: 20px;
+    }
+    
+    .esquina-derecha-arriba {
+      top: 20px;
+      right: 20px;
+    }
+
+    p {
+      position: fixed;
+      top: 30%;
+      right: 30%;
+      color: rgb(255, 255, 255);
+      text-decoration: none;
+      font-size: 100px;
+      font-weight: bold;
+      z-index: 1000;
+      transition: opacity 2s ease-in-out;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  
+  <a href="index.html" class="link esquina-izquierda" id="link1">↕</a>
+  <a href="musica_experimental.html" class="link esquina-izquierda-arriba" id="link3">⦿</a>
+  <a href="rastros.html" class="link esquina-derecha-arriba" id="link4">⦿</a>
+  
+  <div class="link esquina-derecha" id="button1">(..)</div>
+  
+  <script>
+    let osc1, osc2, osc3, noise, filter, reverb, env;
+    let recorder, soundFile;
+    let recording = false;
+    let playing = false;
+    let spectrum;
+    let fft;
+
+    let baseFreq = 50;
+    let filterFreq = 2000;
+
+    let lastDir = null;
+    let holdTimeout;
+    let waitingToToggleRecording = false;
+    
+    // Variables para la visualización
+    let particles = [];
+    let spectralLines = [];
+    let visualAlpha = 0;
+    
+    // Variables para los links alternantes
+    let linkCycle = 0;
+    let lastLinkTime = 0;
+    let linkDuration = 5000; // 2.5 segundos por link/botón
+    let links = [];
+    let linkSequenceStarted = false;
+    let initialDelay = 5000; // 5 segundos de delay inicial
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      fft = new p5.FFT(0.8, 512);
+      
+      // Inicializar links
+      links = [
+        document.getElementById('link3'),
+        document.getElementById('link1'),
+        document.getElementById('link4'),
+        document.getElementById('button1'), // Este es el botón, no un enlace
+      ];
+
+            
+      // Iniciar la secuencia de links después del delay inicial
+      setTimeout(() => {
+        linkSequenceStarted = true;
+        lastLinkTime = millis();
+        // Mostrar el primer link
+        if (links[0]) {
+          links[0].classList.add('visible');
+        }
+      }, initialDelay);
+      
+
+      // Inicializar partículas espectrales
+      for(let i = 0; i < 20; i++) {
+        particles.push({
+          x: random(width),
+          y: random(height),
+          size: random(2, 8),
+          alpha: 0,
+          targetAlpha: 0,
+          freq: random(0.01, 0.03)
+        });
+      }
+      
+      // Osciladores desafinados
+      osc1 = new p5.Oscillator('saw');
+      osc2 = new p5.Oscillator('saw');
+      osc3 = new p5.Oscillator('saw');
+
+      osc1.freq(baseFreq);
+      osc2.freq(baseFreq * 1.01);
+      osc3.freq(baseFreq * 0.99);
+
+      osc1.start();
+      osc2.start();
+      osc3.start();
+
+      // Ruido rosa
+      noise = new p5.Noise('pink');
+      noise.start();
+
+      // Envolvente
+      env = new p5.Envelope();
+      env.setADSR(0.5, 0.1, 0.3, 1.2);
+      env.setRange(0.3, 0);
+
+      // Filtro lowpass
+      filter = new p5.LowPass();
+      filter.freq(filterFreq);
+      filter.res(10);
+
+      // Routing
+      osc1.disconnect();
+      osc2.disconnect();
+      osc3.disconnect();
+      noise.disconnect();
+
+      osc1.connect(filter);
+      osc2.connect(filter);
+      osc3.connect(filter);
+      noise.connect(filter);
+
+      // Reverb
+      reverb = new p5.Reverb();
+      reverb.process(filter, 3, 2);
+
+      // Aplicar envolvente
+      osc1.amp(env);
+      osc2.amp(env);
+      osc3.amp(env);
+      noise.amp(0.35);
+
+      // Grabador
+      recorder = new p5.SoundRecorder();
+      recorder.setInput();
+
+      // Permitir escuchar desde el inicio
+      userStartAudio();
+      env.triggerAttack();
+    }
+
+    function draw() {
+      background(0, 50);
+      
+      // Gestionar alternancia de links solo si la secuencia ha comenzado
+      if (linkSequenceStarted) {
+        manageLinks();
+      }
+      
+      if (playing && soundFile && soundFile.isPlaying()) {
+        spectrum = fft.analyze();
+        drawSpectralVisualization();
+      } else {
+        // Visualización ambient cuando no hay reproducción
+        drawAmbientVisualization();
+      }
+    }
+    
+    function manageLinks() {
+      let currentTime = millis();
+      
+      if (currentTime - lastLinkTime > linkDuration) {
+        // Ocultar link actual
+        if (links[linkCycle]) {
+          links[linkCycle].classList.remove('visible');
+        }
+        
+        // Avanzar al siguiente link
+        linkCycle = (linkCycle + 1) % links.length;
+        
+        // Mostrar nuevo link después de una pausa
+        setTimeout(() => {
+          if (links[linkCycle]) {
+            links[linkCycle].classList.add('visible');
+          }
+        }, 1000);
+        
+        lastLinkTime = currentTime;
+      }
+    }
+    
+    function drawSpectralVisualization() {
+      // Líneas espectrales minimalistas
+      stroke(255, 100);
+      strokeWeight(1);
+      
+      let bassEnergy = 0;
+      let midEnergy = 0;
+      let highEnergy = 0;
+      
+      // Calcular energías por bandas
+      for (let i = 0; i < spectrum.length; i++) {
+        if (i < spectrum.length * 0.1) bassEnergy += spectrum[i];
+        else if (i < spectrum.length * 0.4) midEnergy += spectrum[i];
+        else highEnergy += spectrum[i];
+      }
+      
+      bassEnergy /= (spectrum.length * 0.1);
+      midEnergy /= (spectrum.length * 0.3);
+      highEnergy /= (spectrum.length * 0.6);
+      
+      // Líneas verticales sparse basadas en frecuencias
+      for (let i = 0; i < spectrum.length; i += 8) {
+        if (spectrum[i] > 50) {
+          let x = map(i, 0, spectrum.length, width * 0.1, width * 0.9);
+          let h = map(spectrum[i], 0, 255, 0, height * 0.3);
+          
+          stroke(255, map(spectrum[i], 50, 255, 30, 150));
+          line(x, height/2 - h/2, x, height/2 + h/2);
+        }
+      }
+      
+      // Círculos concéntricos basados en energía
+      noFill();
+      strokeWeight(0.5);
+      
+      if (bassEnergy > 30) {
+        stroke(255, map(bassEnergy, 30, 255, 50, 200));
+        circle(width/2, height/2, map(bassEnergy, 30, 255, 50, 200));
+      }
+      
+      if (midEnergy > 30) {
+        stroke(255, map(midEnergy, 30, 255, 30, 150));
+        circle(width/2, height/2, map(midEnergy, 30, 255, 100, 400));
+      }
+      
+      // Partículas reactivas
+      updateParticles(bassEnergy, midEnergy, highEnergy);
+    }
+    
+    function drawAmbientVisualization() {
+      // Visualización sutil cuando no hay audio
+      stroke(255, 20);
+      strokeWeight(0.5);
+      
+      let time = millis() * 0.001;
+      
+      // Líneas ondulantes sutiles
+      for (let i = 0; i < 3; i++) {
+        let y = height/2 + sin(time + i * 2) * 30;
+        let startX = sin(time * 0.5 + i) * 100 + width * 0.2;
+        let endX = sin(time * 0.3 + i + 1) * 100 + width * 0.8;
+        
+        line(startX, y, endX, y);
+      }
+      
+      // Actualizar partículas con movimiento mínimo
+      updateParticles(10, 5, 2);
+    }
+    
+    function updateParticles(bass, mid, high) {
+      let time = millis() * 0.001;
+      
+      for (let particle of particles) {
+        // Movimiento sutil basado en frecuencias
+        particle.x += sin(time * particle.freq + bass * 0.01) * 0.5;
+        particle.y += cos(time * particle.freq * 1.5 + mid * 0.01) * 0.3;
+        
+        // Mantener partículas en pantalla
+        if (particle.x < 0) particle.x = width;
+        if (particle.x > width) particle.x = 0;
+        if (particle.y < 0) particle.y = height;
+        if (particle.y > height) particle.y = 0;
+        
+        // Alpha basado en energía espectral
+        particle.targetAlpha = map(bass + mid + high, 0, 300, 20, 200);
+        particle.alpha = lerp(particle.alpha, particle.targetAlpha, 0.1);
+        
+        // Dibujar partícula
+        fill(255, particle.alpha);
+        noStroke();
+        circle(particle.x, particle.y, particle.size);
+      }
+    }
+
+    // Scroll = barrido de filtro
+    window.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+        filterFreq = constrain(filterFreq + e.deltaY * -1, 200, 10000);
+        filter.freq(filterFreq);
+      }
+    });
+
+    // Zigzag = barrido de frecuencia
+    window.addEventListener('mousemove', (e) => {
+      const dir = e.movementX > 0 ? 'right' : 'left';
+      if (dir !== lastDir && Math.abs(e.movementX) > 2) {
+        let newFreq = map(e.clientX, 0, windowWidth, 100, 1000);
+        baseFreq = newFreq;
+        osc1.freq(baseFreq);
+        osc2.freq(baseFreq * 1.01);
+        osc3.freq(baseFreq * 0.99);
+      }
+      lastDir = dir;
+    });
+
+    // Click prolongado para toggle de grabación
+    window.addEventListener('mousedown', () => {
+      holdTimeout = setTimeout(() => {
+        if (!waitingToToggleRecording) {
+          waitingToToggleRecording = true;
+          toggleRecording();
+        }
+      }, 800);
+    });
+
+    window.addEventListener('mouseup', () => {
+      clearTimeout(holdTimeout);
+      waitingToToggleRecording = false;
+    });
+
+    window.addEventListener('mouseleave', () => {
+      clearTimeout(holdTimeout);
+      waitingToToggleRecording = false;
+    });
+
+    function toggleRecording() {
+      if (!recording) {
+        soundFile = new p5.SoundFile();
+        recorder.record(soundFile);
+        recording = true;
+        playing = false;
+        env.triggerAttack();
+      } else {
+        recorder.stop();
+        recording = false;
+        env.triggerRelease();
+      }
+    }
+
+    // Doble clic para play/pause
+    window.addEventListener('dblclick', () => {
+      if (soundFile && soundFile.buffer) {
+        if (!playing) {
+          soundFile.play();
+          playing = true;
+          // Conectar audio al analizador FFT
+          soundFile.connect(fft);
+        } else {
+          soundFile.stop();
+          playing = false;
+        }
+      }
+    });
+    
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+  </script>
+</body>
+</html>
